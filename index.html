@@ -160,7 +160,7 @@
 <div id="pRp" class="phase"><div class="rpt" id="rpC"></div></div>
 
 <script>
-var API_KEY = '__API_KEY__';
+var PROXY_URL = '__PROXY_URL__';
 
 var R=[
   {id:"cd",p:"1.",n:"Course Design",mx:56,s:[{i:"1.1",t:"Goals as measurable outcomes",x:5,c:1},{i:"1.2",t:"Goals easily located",x:4,c:0},{i:"1.3",t:"Content in manageable segments",x:5,c:1},{i:"1.4",t:"Multimedia content",x:4,c:0},{i:"1.5",t:"Consistent organized design",x:4,c:0},{i:"1.6",t:"Activities connect to outcomes",x:5,c:1},{i:"1.7",t:"Clear learner guidance",x:5,c:1},{i:"1.8",t:"Efficient LMS tool use",x:4,c:0},{i:"1.9",t:"Technology enhances engagement",x:3,c:0},{i:"1.10",t:"Technology beyond teacher-centered",x:3,c:0},{i:"1.11",t:"Inclusive pedagogy",x:5,c:1},{i:"1.12",t:"Accessible multimedia",x:5,c:1},{i:"1.13",t:"Diverse learning methods",x:4,c:0}]},
@@ -210,9 +210,9 @@ async function parseZip(file){
 async function ask(prompt){
   var resp;
   try {
-    resp = await fetch("https://api.anthropic.com/v1/messages", {
+    resp = await fetch(PROXY_URL, {
       method: "POST",
-      headers: {"Content-Type": "application/json", "x-api-key": API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-allow-browser": "true"},
+      headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: 1000,

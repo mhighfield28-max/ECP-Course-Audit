@@ -3,7 +3,7 @@ frontend:
   phases:
     build:
       commands:
-        - sed -i "s|__API_KEY__|$API_KEY|g" index.html
+        - sed -i "s|__PROXY_URL__|$PROXY_URL|g" index.html
   artifacts:
     baseDirectory: .
     files:
