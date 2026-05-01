@@ -1,0 +1,12 @@
+version: 1
+frontend:
+  phases:
+    build:
+      commands:
+        - sed -i "s|__API_KEY__|$API_KEY|g" index.html
+  artifacts:
+    baseDirectory: .
+    files:
+      - index.html
+  cache:
+    paths: []

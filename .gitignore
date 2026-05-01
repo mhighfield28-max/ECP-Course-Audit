@@ -1,0 +1,15 @@
+# Exclude Office documents and local files
+*.docx
+*.doc
+*.xlsx
+*.xls
+*.pptx
+*.pdf
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# OneDrive temp files
+*.tmp
+~$*

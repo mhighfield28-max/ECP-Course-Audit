@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blackboard ECP Auditor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{--bg:#0B1121;--bg2:#131C2E;--bg3:#1A2540;--brd:#1E2D4A;--brd2:#2A3B5C;--gn:#22C55E;--gn2:#16A34A;--gnbg:rgba(34,197,94,0.12);--wh:#F1F5F9;--wh2:#CBD5E1;--wh3:#94A3B8;--wh4:#64748B;--rd:#EF4444;--am:#F59E0B;--pr:#818CF8;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--wh);min-height:100vh;}
+
+  header{background:var(--bg2);height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;border-bottom:1px solid var(--brd);position:sticky;top:0;z-index:50;}
+  .h-l{display:flex;align-items:center;gap:14px;}
+  .h-icon{width:40px;height:40px;border-radius:10px;background:var(--gn);display:flex;align-items:center;justify-content:center;}
+  .h-txt .h-t{font-size:17px;font-weight:700;color:var(--wh);line-height:1.2;}
+  .h-txt .h-s{font-size:11px;font-weight:600;color:var(--wh4);letter-spacing:1.5px;text-transform:uppercase;}
+  .h-r{display:flex;align-items:center;gap:20px;}
+  .h-r a{font-size:13px;font-weight:600;color:var(--wh3);text-decoration:none;transition:color 0.2s;}
+  .h-r a:hover{color:var(--gn);}
+  .btn-o{background:var(--bg3);color:var(--wh2);border:1.5px solid var(--brd2);padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;display:none;transition:all 0.2s;}
+  .btn-o:hover{border-color:var(--gn);color:var(--gn);}
+  .phase{display:none;}.phase.on{display:block;}
+
+  /* Upload */
+  .up{max-width:640px;margin:0 auto;padding:70px 24px;text-align:center;}
+  .up-tag{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--gn);text-transform:uppercase;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);padding:6px 18px;border-radius:20px;margin-bottom:28px;}
+  .up-tag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gn);box-shadow:0 0 8px rgba(34,197,94,0.6);}
+  .up h1{font-size:40px;font-weight:800;line-height:1.15;margin-bottom:18px;color:var(--wh);}
+  .up h1 span{color:var(--gn);}
+  .up-d{font-size:15px;color:var(--wh3);line-height:1.7;max-width:480px;margin:0 auto 40px;}
+  .dz{border:2px dashed var(--brd2);border-radius:16px;padding:48px 32px;cursor:pointer;background:var(--bg2);transition:all 0.25s;}
+  .dz.ov{border-color:var(--gn);background:rgba(34,197,94,0.04);box-shadow:0 0 0 4px rgba(34,197,94,0.1);}
+  .dz-i{width:56px;height:56px;border-radius:14px;background:rgba(34,197,94,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+  .dz-t{font-size:15px;font-weight:600;color:var(--wh);margin-bottom:4px;}
+  .dz-s{font-size:13px;color:var(--wh4);}
+  .dz-s strong{color:var(--wh3);}
+  .up-st{margin-top:36px;display:flex;gap:0;justify-content:center;}
+  .up-st>div{text-align:center;padding:0 24px;border-right:1px solid var(--brd);}
+  .up-st>div:last-child{border-right:none;}
+  .up-sn{font-size:24px;font-weight:800;color:var(--gn);font-family:'Courier New',monospace;}
+  .up-sl{font-size:10px;color:var(--wh4);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+  .up-hw{margin-top:40px;padding:16px 20px;background:var(--bg2);border-radius:12px;border:1px solid var(--brd);text-align:left;font-size:13px;color:var(--wh3);line-height:1.6;}
+  .up-hw strong{color:var(--gn);}
+
+  /* Loading */
+  .ld{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;padding:24px;text-align:center;}
+  .sp-w{position:relative;width:88px;height:88px;margin-bottom:28px;}
+  .sp{width:88px;height:88px;border:3px solid var(--brd);border-top-color:var(--gn);border-radius:50%;animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .sp-ic{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+  .ld h3{font-size:20px;font-weight:700;margin-bottom:8px;color:var(--wh);}
+  .ld-s{color:var(--gn);font-size:14px;font-weight:500;}
+  .ld-steps{margin-top:36px;background:var(--bg2);border-radius:12px;border:1px solid var(--brd);padding:18px;width:100%;max-width:400px;}
+  .ld-sr{display:flex;align-items:center;gap:12px;padding:7px 0;font-size:13px;}
+  .ld-sd{width:10px;height:10px;border-radius:50%;flex-shrink:0;transition:all 0.3s;}
+  .ld-detail{font-size:11px;color:var(--wh4);margin-top:12px;max-width:400px;}
+
+  /* Error */
+  .err{max-width:500px;margin:80px auto;padding:36px;background:var(--bg2);border-radius:14px;border:1px solid rgba(239,68,68,0.3);text-align:center;}
+  .err-i{width:48px;height:48px;border-radius:50%;background:rgba(239,68,68,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+  .btn-r{background:var(--gn);color:#fff;border:none;padding:10px 28px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;transition:background 0.2s;}
+  .btn-r:hover{background:var(--gn2);}
+
+  /* Report */
+  .rpt{max-width:1100px;margin:0 auto;padding:36px 24px 80px;}
+  .rpt-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:36px;}
+  .rpt-tag{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--gn);text-transform:uppercase;}
+  .rpt-mode{font-size:11px;font-weight:600;color:var(--wh4);background:var(--bg3);padding:3px 10px;border-radius:4px;margin-left:12px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--brd);}
+  .rpt-title{font-size:32px;font-weight:800;color:var(--wh);margin-top:4px;line-height:1.2;}
+  .top-grid{display:grid;grid-template-columns:380px 1fr;gap:24px;margin-bottom:36px;}
+  .card{background:var(--bg2);border-radius:14px;border:1px solid var(--brd);overflow:hidden;}
+  .card-p{padding:28px;}
+  .sum-tag{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--wh4);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+  .sum-q{font-size:14px;font-style:italic;color:var(--wh2);line-height:1.7;border-left:3px solid var(--gn);padding-left:16px;}
+  .score-wrap{text-align:center;padding:28px;}
+  .score-circ{position:relative;width:160px;height:160px;margin:0 auto 16px;}
+  .score-pct{font-size:44px;font-weight:800;color:var(--wh);font-family:'Courier New',monospace;}
+  .score-lbl{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--wh4);text-transform:uppercase;}
+  .rating-pill{display:inline-block;padding:6px 20px;border-radius:20px;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:12px 0 8px;}
+  .score-pts{font-size:32px;font-weight:300;color:var(--wh2);font-family:'Courier New',monospace;}
+  .score-pts b{font-weight:800;color:var(--wh);}
+  .score-pts-l{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--wh4);text-transform:uppercase;margin-top:2px;}
+  .cb-hdr{background:var(--bg3);padding:20px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--brd);}
+  .cb-hdr h3{font-size:16px;font-weight:800;color:var(--wh);}
+  .cb-hdr .cb-s{font-size:13px;color:var(--wh4);}
+  .cb-pct{font-size:36px;font-weight:800;color:var(--gn);font-family:'Courier New',monospace;}
+  .cb-pct-l{font-size:9px;font-weight:700;color:var(--wh4);letter-spacing:1.5px;text-transform:uppercase;text-align:right;}
+  .cat-name{font-size:22px;font-weight:800;color:var(--wh);margin-bottom:12px;}
+  .cat-bar-row{display:flex;align-items:center;gap:14px;margin-bottom:24px;}
+  .cat-bar{flex:1;height:10px;background:var(--bg);border-radius:5px;overflow:hidden;}
+  .cat-bar-f{height:100%;border-radius:5px;transition:width 1.2s ease;background:var(--gn);}
+  .cat-pts{font-size:14px;font-weight:600;color:var(--wh3);white-space:nowrap;}
+  .cat-score-pill{border:1.5px solid var(--brd2);border-radius:10px;padding:10px 18px;text-align:center;background:var(--bg);}
+  .cat-score-l{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--wh4);text-transform:uppercase;margin-bottom:2px;}
+  .cat-score-v{font-size:28px;font-weight:800;color:var(--gn);font-family:'Courier New',monospace;}
+  .cat-body{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--brd);}
+  .cat-left{padding:24px 28px;border-right:1px solid var(--brd);}
+  .cat-right{padding:24px 28px;}
+  .sec-tag{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;}
+  .sec-tag.find{color:var(--wh4);}.sec-tag.str{color:var(--gn);}.sec-tag.imp{color:var(--pr);}
+  .find-txt{font-size:14px;color:var(--wh3);line-height:1.7;}
+  .str-item,.imp-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;margin-bottom:8px;font-size:13px;line-height:1.5;color:var(--wh2);}
+  .str-item{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);}
+  .imp-item{background:rgba(129,140,248,0.06);border:1px solid rgba(129,140,248,0.15);}
+  .radar-svg text{font-family:'Segoe UI',system-ui,sans-serif;}
+  .ftr{text-align:center;padding:40px 24px;border-top:1px solid var(--brd);margin-top:48px;color:var(--wh4);font-size:13px;}
+  .ftr-links{margin-top:12px;display:flex;justify-content:center;gap:20px;}
+  .ftr-links a{font-size:11px;font-weight:700;color:var(--wh4);text-decoration:none;letter-spacing:2px;text-transform:uppercase;transition:color 0.2s;}
+  .ftr-links a:hover{color:var(--gn);}
+  .el{font-size:12px;color:var(--rd);margin-top:4px;padding:6px 10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:6px;text-align:left;word-break:break-all;}
+  @media(max-width:800px){.top-grid,.cat-body{grid-template-columns:1fr;}.cat-left{border-right:none;border-bottom:1px solid var(--brd);}}
+</style>
+</head>
+<body>
+<header>
+  <div class="h-l">
+    <div class="h-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div>
+    <div class="h-txt"><div class="h-t">Blackboard ECP Auditor</div><div class="h-s">Instructional Quality Analysis</div></div>
+  </div>
+  <div class="h-r">
+    <a href="https://www.niu.edu/blackboard/exemplary-course-program/rubric.shtml" target="_blank">ECP Rubric</a>
+    <button class="btn-o" id="btnN" onclick="doReset()">New Audit</button>
+  </div>
+</header>
+
+<div id="pUp" class="phase on"><div class="up">
+  <div class="up-tag">Exemplary Course Program</div>
+  <h1>Audit Your Course<br>with <span>AI Analysis</span></h1>
+  <p class="up-d">Upload a Blackboard course export (<strong style="color:var(--wh)">Without Enrollments</strong>) and get an instant AI-powered evaluation against all 48 ECP rubric standards.</p>
+  <div class="dz" id="dz"><input type="file" id="fi" accept=".zip" style="display:none">
+    <div class="dz-i"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+    <div class="dz-t">Drop your course export here</div>
+    <div class="dz-s">or click to browse — accepts <strong>.zip</strong> files</div>
+  </div>
+  <div class="up-st">
+    <div><div class="up-sn">48</div><div class="up-sl">Standards</div></div>
+    <div><div class="up-sn">4</div><div class="up-sl">Categories</div></div>
+    <div><div class="up-sn">191</div><div class="up-sl">Total Points</div></div>
+    <div><div class="up-sn">16</div><div class="up-sl">Compulsory</div></div>
+  </div>
+  <div class="up-hw"><strong>How to export:</strong> In Blackboard go to Control Panel &gt; Packages and Utilities &gt; Export/Archive Course &gt; Export. Select <strong style="color:var(--wh)">Without Enrollments</strong> and include all content areas.</div>
+</div></div>
+
+<div id="pLd" class="phase"><div class="ld">
+  <div class="sp-w"><div class="sp"></div><div class="sp-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div></div>
+  <h3>Auditing Course Export</h3>
+  <div class="ld-s" id="ldS"></div>
+  <div class="ld-steps" id="stC"></div>
+  <div class="ld-detail" id="ldD"></div>
+</div></div>
+
+<div id="pEr" class="phase"><div class="err">
+  <div class="err-i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+  <h2 style="font-size:20px;font-weight:700;margin-bottom:8px">Analysis Failed</h2>
+  <p id="erM" style="font-size:14px;color:var(--wh3);margin-bottom:20px;line-height:1.5"></p>
+  <button class="btn-r" onclick="doReset()">Try Again</button>
+</div></div>
+
+<div id="pRp" class="phase"><div class="rpt" id="rpC"></div></div>
+
+<script>
+var API_KEY = '__API_KEY__';
+
+var R=[
+  {id:"cd",p:"1.",n:"Course Design",mx:56,s:[{i:"1.1",t:"Goals as measurable outcomes",x:5,c:1},{i:"1.2",t:"Goals easily located",x:4,c:0},{i:"1.3",t:"Content in manageable segments",x:5,c:1},{i:"1.4",t:"Multimedia content",x:4,c:0},{i:"1.5",t:"Consistent organized design",x:4,c:0},{i:"1.6",t:"Activities connect to outcomes",x:5,c:1},{i:"1.7",t:"Clear learner guidance",x:5,c:1},{i:"1.8",t:"Efficient LMS tool use",x:4,c:0},{i:"1.9",t:"Technology enhances engagement",x:3,c:0},{i:"1.10",t:"Technology beyond teacher-centered",x:3,c:0},{i:"1.11",t:"Inclusive pedagogy",x:5,c:1},{i:"1.12",t:"Accessible multimedia",x:5,c:1},{i:"1.13",t:"Diverse learning methods",x:4,c:0}]},
+  {id:"ic",p:"2.",n:"Interaction & Collaboration",mx:34,s:[{i:"2.1",t:"Interactive components",x:5,c:1},{i:"2.2",t:"Critical reflection",x:4,c:0},{i:"2.3",t:"Collaborative variety",x:3,c:0},{i:"2.4",t:"Workplace skill building",x:4,c:0},{i:"2.5",t:"Required interactions",x:3,c:0},{i:"2.6",t:"Community building",x:2,c:0},{i:"2.7",t:"Participation rubric",x:5,c:1},{i:"2.8",t:"Clear guidelines",x:4,c:0},{i:"2.9",t:"Interaction expectations",x:4,c:0}]},
+  {id:"as",p:"3.",n:"Assessment",mx:36,s:[{i:"3.1",t:"Clear evaluation criteria",x:5,c:1},{i:"3.2",t:"Aligned assessments",x:4,c:0},{i:"3.3",t:"Clear inline instructions",x:4,c:0},{i:"3.4",t:"Quality work examples",x:4,c:0},{i:"3.5",t:"Regular formative/summative",x:5,c:1},{i:"3.6",t:"Multiple assessment types",x:5,c:1},{i:"3.7",t:"Authentic assessments",x:4,c:0},{i:"3.8",t:"Self-assessment provided",x:3,c:0},{i:"3.9",t:"Purposeful self-assessments",x:2,c:0}]},
+  {id:"ls",p:"4.",n:"Learner Support",mx:65,s:[{i:"4.1",t:"LMS/course orientation",x:5,c:1},{i:"4.2",t:"Identifiable orientation",x:3,c:0},{i:"4.3",t:"Technology info",x:3,c:0},{i:"4.4",t:"Instructor contact",x:5,c:1},{i:"4.5",t:"Work submission methods",x:4,c:0},{i:"4.6",t:"Communication methods",x:4,c:0},{i:"4.7",t:"Response time stated",x:4,c:0},{i:"4.8",t:"Instructor role explained",x:4,c:0},{i:"4.9",t:"Clear policies",x:5,c:1},{i:"4.10",t:"Support info",x:4,c:0},{i:"4.11",t:"Disability services",x:4,c:0},{i:"4.12",t:"Accepted formats",x:5,c:1},{i:"4.13",t:"Segmented files",x:3,c:0},{i:"4.14",t:"Optimized multimedia",x:2,c:0},{i:"4.15",t:"Tech links provided",x:2,c:0},{i:"4.16",t:"Formative feedback",x:5,c:1},{i:"4.17",t:"Anonymous evaluation",x:3,c:0}]}
+];
+var AC=[];R.forEach(function(c){c.s.forEach(function(s){if(s.c)AC.push(s);});});
+var report=null,catErrs=[];
+
+function showP(id){["pUp","pLd","pEr","pRp"].forEach(function(x){document.getElementById(x).className="phase"+(x===id?" on":"");});document.getElementById("btnN").style.display=id==="pRp"?"inline-block":"none";}
+function doReset(){report=null;catErrs=[];showP("pUp");}
+function setS(m){document.getElementById("ldS").textContent=m;
+  var ss=[{l:"Extracting & Indexing ZIP",d:m.indexOf("xtract")<0&&m!=="",a:m.indexOf("xtract")>=0||m.indexOf("eading")>=0},{l:"Building Course Profile",d:m.indexOf("nalyzi")>=0||m.indexOf("ategory")>=0,a:m.indexOf("uild")>=0||m.indexOf("riority")>=0},{l:"AI Rubric Analysis (4 categories)",d:false,a:m.indexOf("nalyzi")>=0||m.indexOf("ategory")>=0}];
+  var h="";ss.forEach(function(s){h+='<div class="ld-sr"><div class="ld-sd" style="background:'+(s.d?"var(--gn)":s.a?"var(--gn)":"var(--brd)")+';box-shadow:'+(s.a?"0 0 0 3px rgba(34,197,94,0.2)":"none")+';opacity:'+(s.a?"1":s.d?"0.5":"0.3")+'"></div><span style="color:'+(s.a?"var(--wh)":s.d?"var(--wh4)":"var(--brd2)")+';font-weight:'+(s.a?600:400)+';text-decoration:'+(s.d?"line-through":"none")+'">'+s.l+'</span></div>';});
+  document.getElementById("stC").innerHTML=h;}
+function setD(m){document.getElementById("ldD").textContent=m;}
+function showErr(m){document.getElementById("erM").textContent=m;showP("pEr");}
+function esc(s){if(!s)return"";var d=document.createElement("div");d.textContent=s;return d.innerHTML;}
+
+var PW=["policy","policies","syllabus","welcome","getting.started","get.started","orientation","contact","instructor","support","help","accessibility","accessible","ally","disability","feedback","survey","evaluation","rubric","grading","grade","objective","goal","outcome","module","unit","lesson","assessment","test","quiz","exam","assignment","discussion","collaborate","group","forum","announce"];
+function pScore(path){var lp=path.toLowerCase(),s=0;PW.forEach(function(w){if(lp.indexOf(w)>=0)s+=10;});if(lp.endsWith(".dat"))s+=5;if(lp.endsWith(".html")||lp.endsWith(".htm"))s+=3;return s;}
+
+async function parseZip(file){
+  if(typeof JSZip==="undefined")throw new Error("ZIP library not loaded.");
+  var zip=await JSZip.loadAsync(file);
+  var mf=zip.file("imsmanifest.xml");if(!mf){var mm=zip.file(/imsmanifest\.xml$/i);if(mm&&mm.length)mf=mm[0];}
+  var mx=mf?await mf.async("text"):"";
+  var af=[],rf=[];
+  zip.forEach(function(p,e){af.push(p);var l=p.toLowerCase();if(!e.dir&&(l.endsWith(".dat")||l.endsWith(".html")||l.endsWith(".htm")||l.endsWith(".xml")))rf.push({path:p,entry:e,priority:pScore(p)});});
+  rf.sort(function(a,b){return b.priority-a.priority;});
+  setS("Reading priority content files...");setD("Found "+rf.length+" content files...");
+  var pt=[],ot=[],pu=0,ou=0,fr=0;
+  for(var i=0;i<rf.length;i++){
+    try{if(rf[i].entry.dir)continue;var txt=await rf[i].entry.async("text");if(!txt||txt.trim().length<20)continue;fr++;
+      var clean=txt.replace(/<script[^>]*>[\s\S]*?<\/script>/gi,"").replace(/<style[^>]*>[\s\S]*?<\/style>/gi,"").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();
+      if(clean.length<20)continue;
+      if(rf[i].priority>=10&&pu<12000){var ch=clean.substring(0,2000);pt.push("["+rf[i].path+"] "+ch);pu+=ch.length;}
+      else if(ou<8000){var ch2=clean.substring(0,800);ot.push("["+rf[i].path+"] "+ch2);ou+=ch2.length;}
+    }catch(e){}setD("Read "+fr+" of "+rf.length+" files ("+pt.length+" priority)...");
+  }
+  var tc={};af.forEach(function(f){var e=f.split(".").pop().toLowerCase();tc[e]=(tc[e]||0)+1;});
+  var cs="PRIORITY CONTENT:\n"+pt.join("\n\n")+"\n\nADDITIONAL:\n"+ot.join("\n\n");
+  return{fn:file.name,fc:af.length,tc:JSON.stringify(tc),mx:mx.substring(0,5000),ct:cs.substring(0,20000),fp:af.slice(0,80).join(","),stats:{total:af.length,read:fr,pri:pt.length,oth:ot.length}};
+}
+
+async function ask(prompt){
+  var resp;
+  try {
+    resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "x-api-key": API_KEY, "anthropic-version": "2023-06-01"},
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{role: "user", content: prompt}]
+      })
+    });
+  } catch(e) {
+    throw new Error("Network: " + e.toString());
+  }
+  if(!resp.ok){var e="";try{e=await resp.text();}catch(x){}throw new Error("HTTP "+resp.status+": "+e.substring(0,200));}
+  var d=await resp.json();if(!d.content||!d.content.length)throw new Error("Empty response");
+  var txt="";for(var i=0;i<d.content.length;i++){if(d.content[i].text)txt+=d.content[i].text;}return txt;
+}
+function exJSON(txt){var c=txt.trim().replace(/^```json\s*/i,"").replace(/^```\s*/i,"").replace(/```\s*$/,"").trim();var depth=0,start=-1,end=-1;for(var i=0;i<c.length;i++){if(c[i]==="{"){if(depth===0)start=i;depth++;}else if(c[i]==="}"){depth--;if(depth===0){end=i;break;}}}if(start>=0&&end>start)return JSON.parse(c.substring(start,end+1));throw new Error("No JSON in response");}
+
+var BB_CTX='IMPORTANT - WITHOUT ENROLLMENTS MODE:\n- No student data/posts/submissions. Evaluate DESIGN, STRUCTURE, SETUP.\n- If structures EXIST (discussion boards, dropboxes, rubrics, groups) give full credit.\n- Blackboard built-in features (credit these): Ally (auto alt formats), Messages, Announcements, Grade Center, Discussions, Groups, Rubrics, Calendar, My Grades.\n- Standard areas: Getting Started/Welcome = orientation/policies. Policies folder = accessibility, grading, institutional policies.\n- BENEFIT OF THE DOUBT: if file path or content suggests a feature, credit it.\n';
+
+async function analyzeOne(cat,cd){
+  var sl=cat.s.map(function(s){return s.i+"("+s.x+(s.c?",C":"")+"): "+s.t;}).join("; ");
+  var p='Evaluate Blackboard course export for "'+cat.n+'" ECP standards.\n\n'+BB_CTX;
+  p+='Standards: '+sl+'\nCourse: '+cd.fn+' ('+cd.fc+' files). Types: '+cd.tc+'\nPaths: '+cd.fp.substring(0,800)+'\n\nManifest:\n'+cd.mx.substring(0,1500)+'\n\nContent:\n'+cd.ct.substring(0,4500)+'\n\n';
+  p+='Return ONLY JSON: {"findings":"2-3 sentences","strengths":["s1","s2"],"improvements":["i1","i2"],"scores":[[id,score,rating],...]}\nscores: id=string, score=0-max, rating=E/A/P/I. Be FAIR. ONLY JSON.';
+  var txt=await ask(p);var obj=exJSON(txt);
+  var rm={"E":"exemplary","A":"accomplished","P":"promising","I":"incomplete"};
+  var stds=[],score=0;
+  (obj.scores||[]).forEach(function(item){if(!Array.isArray(item)||item.length<3)return;var id=String(item[0]),sc=Number(item[1])||0,rl=rm[String(item[2]).toUpperCase()]||"not_assessed";score+=sc;stds.push({id:id,score:sc,rating:rl});});
+  return{score:score,stds:stds,findings:obj.findings||"",strengths:obj.strengths||[],improvements:obj.improvements||[]};
+}
+async function getSummary(cd,cats){
+  var cs=cats.map(function(c){return c.n+": "+c.score+"/"+c.mx;}).join(", ");
+  var tot=cats.reduce(function(s,c){return s+(c.score||0);},0);
+  var p='Write 2-3 sentence executive summary for this Blackboard ECP audit. Be constructive.\nCourse: '+cd.fn+'\nTotal: '+tot+'/191\nScores: '+cs+'\nReturn ONLY JSON: {"summary":"text"}';
+  try{var txt=await ask(p);return exJSON(txt).summary||"";}catch(e){return"Audit complete across 4 ECP categories.";}
+}
+
+async function runAudit(file){
+  showP("pLd");setS("Extracting ZIP contents...");setD("");catErrs=[];
+  try{
+    var cd=await parseZip(file);setS("Building course profile...");
+    setD("Priority: "+cd.stats.pri+" key files, "+cd.stats.oth+" additional ("+cd.stats.read+" total)");
+    var cats=[],allStd=[];
+    for(var i=0;i<R.length;i++){var cat=R[i];setS("Analyzing category "+(i+1)+"/4: "+cat.n+"...");
+      try{var res=await analyzeOne(cat,cd);cats.push({id:cat.id,n:cat.n,mx:cat.mx,score:res.score,findings:res.findings,strengths:res.strengths,improvements:res.improvements});allStd=allStd.concat(res.stds);}
+      catch(ce){console.error(cat.n+":",ce);catErrs.push(cat.n+": "+ce.message);cats.push({id:cat.id,n:cat.n,mx:cat.mx,score:0,findings:"Error: "+ce.message,strengths:[],improvements:[]});}}
+    setS("Generating summary...");var summary=await getSummary(cd,cats);
+    var cMet=[],cNot=[];AC.forEach(function(cs){var f=allStd.find(function(s){return s.id===cs.i;});if(f&&f.score>0&&f.rating!=="incomplete")cMet.push(cs.i);else cNot.push(cs.i);});
+    var cname=cd.fn.replace(/\.zip$/i,"").replace(/[_-]+/g," ").replace(/\b\d{10,}\b/g,"").replace(/\s+/g," ").trim();
+    report={name:cname,summary:summary,cats:cats,stds:allStd,cMet:cMet,cNot:cNot};renderRpt();showP("pRp");
+  }catch(e){console.error(e);showErr(e.message);}
+}
+
+// ── RENDER ──────────────────────────────────────────────────────────────────
+function or(s){if(s>=162)return{l:"Exemplary",c:"#22C55E",bg:"rgba(34,197,94,0.15)"};if(s>=153)return{l:"Compelling",c:"#3B82F6",bg:"rgba(59,130,246,0.15)"};if(s>=134)return{l:"Promising",c:"#F59E0B",bg:"rgba(245,158,11,0.15)"};return{l:"Incomplete",c:"#EF4444",bg:"rgba(239,68,68,0.15)"};}
+
+function renderRpt(){
+  var rp=report,tot=rp.cats.reduce(function(s,c){return s+(c.score||0);},0),rt=or(tot),pct=Math.round(tot/191*100);
+  var rd2=68,ci2=2*Math.PI*rd2,of2=ci2-(pct/100)*ci2;
+  var h='<div class="rpt-hdr"><div><span class="rpt-tag">Audit Summary</span><span class="rpt-mode">Without Enrollments</span><div class="rpt-title">'+esc(rp.name)+'</div></div></div>';
+  h+='<div class="top-grid"><div>';
+  h+='<div class="card" style="margin-bottom:20px"><div class="card-p"><div class="sum-tag"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="12" y2="13"/></svg> Executive Summary</div><div class="sum-q">&ldquo;'+esc(rp.summary)+'&rdquo;</div></div></div>';
+  h+='<div class="card"><div class="score-wrap"><div class="score-circ"><svg width="160" height="160" style="transform:rotate(-90deg)"><circle cx="80" cy="80" r="'+rd2+'" fill="none" stroke="var(--brd)" stroke-width="10"/><circle cx="80" cy="80" r="'+rd2+'" fill="none" stroke="'+rt.c+'" stroke-width="10" stroke-dasharray="'+ci2+'" stroke-dashoffset="'+of2+'" stroke-linecap="round" style="transition:stroke-dashoffset 1.5s ease"/></svg><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center"><div class="score-pct">'+pct+'%</div><div class="score-lbl">Audit Score</div></div></div><div class="rating-pill" style="background:'+rt.bg+';color:'+rt.c+'">'+rt.l+'</div><div class="score-pts"><b>'+tot+'</b> / 191</div><div class="score-pts-l">ECP Points</div></div></div>';
+  h+='<div class="card" style="margin-top:20px"><div style="padding:28px;text-align:center">'+buildRadar(rp.cats)+'</div></div></div>';
+  h+='<div><div class="card"><div class="cb-hdr"><div><h3>CATEGORY BREAKDOWN</h3><span class="cb-s">ECP Rubric V1.1</span></div><div><div class="cb-pct">'+pct+'%</div><div class="cb-pct-l">Composite Quality</div></div></div>';
+  rp.cats.forEach(function(c){var cp=c.mx>0?Math.round(c.score/c.mx*100):0;
+    h+='<div style="border-bottom:1px solid var(--brd)"><div style="padding:28px 28px 0"><div style="display:flex;align-items:flex-start;justify-content:space-between"><div style="flex:1"><div class="cat-name">'+c.n+'</div><div class="cat-bar-row"><div class="cat-bar"><div class="cat-bar-f" style="width:'+cp+'%"></div></div><span class="cat-pts">'+c.score+' / '+c.mx+' pts</span></div></div><div class="cat-score-pill"><div class="cat-score-l">Category Score</div><div class="cat-score-v">'+cp+'%</div></div></div></div>';
+    h+='<div class="cat-body"><div class="cat-left"><div class="sec-tag find">Pedagogical Findings</div><div class="find-txt">'+esc(c.findings)+'</div></div><div class="cat-right">';
+    if(c.strengths.length>0){h+='<div class="sec-tag str">Targeted Strengths</div>';c.strengths.forEach(function(s){h+='<div class="str-item"><span style="color:var(--gn);font-weight:700;flex-shrink:0">+</span><span>'+esc(s)+'</span></div>';});}
+    if(c.improvements.length>0){h+='<div class="sec-tag imp" style="margin-top:'+(c.strengths.length?"16px":"0")+'">Actionable Improvements</div>';c.improvements.forEach(function(s){h+='<div class="imp-item"><span style="color:var(--wh4);flex-shrink:0">&rarr;</span><span>'+esc(s)+'</span></div>';});}
+    h+='</div></div></div>';});
+  h+='</div></div></div>';
+  if(catErrs.length){h+='<div style="margin-top:16px">';catErrs.forEach(function(e){h+='<div class="el">'+esc(e)+'</div>';});h+='</div>';}
+  h+='<div class="ftr">&copy; 2025 Blackboard ECP Auditor<div class="ftr-links"><a href="https://www.blackboard.com" target="_blank">Blackboard.com</a><span style="color:var(--brd)">&middot;</span><a href="https://www.anthology.com/blackboard-exemplary-course-program" target="_blank">Anthology ECP</a></div></div>';
+  document.getElementById("rpC").innerHTML=h;
+}
+function buildRadar(cats){
+  var cx=130,cy=130,maxR=90,vals=cats.map(function(c){return c.mx>0?c.score/c.mx:0;}),labels=cats.map(function(c){return c.n.length>16?c.n.substring(0,14)+"..":c.n;}),n=vals.length,angles=[];
+  for(var i=0;i<n;i++)angles.push(-Math.PI/2+(2*Math.PI*i/n));
+  var svg='<svg class="radar-svg" width="260" height="260" viewBox="0 0 260 260">';
+  [0.25,0.5,0.75,1].forEach(function(r){var pts=[];for(var i=0;i<n;i++)pts.push((cx+maxR*r*Math.cos(angles[i]))+","+(cy+maxR*r*Math.sin(angles[i])));svg+='<polygon points="'+pts.join(" ")+'" fill="none" stroke="var(--brd)" stroke-width="1"/>';});
+  for(var i=0;i<n;i++)svg+='<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+maxR*Math.cos(angles[i]))+'" y2="'+(cy+maxR*Math.sin(angles[i]))+'" stroke="var(--brd)" stroke-width="1"/>';
+  var dpts=[];for(var i=0;i<n;i++)dpts.push((cx+maxR*vals[i]*Math.cos(angles[i]))+","+(cy+maxR*vals[i]*Math.sin(angles[i])));
+  svg+='<polygon points="'+dpts.join(" ")+'" fill="rgba(34,197,94,0.12)" stroke="var(--gn)" stroke-width="2"/>';
+  for(var i=0;i<n;i++)svg+='<circle cx="'+(cx+maxR*vals[i]*Math.cos(angles[i]))+'" cy="'+(cy+maxR*vals[i]*Math.sin(angles[i]))+'" r="4" fill="var(--gn)"/>';
+  var lo=[{dx:0,dy:-12,a:"middle"},{dx:14,dy:4,a:"start"},{dx:0,dy:18,a:"middle"},{dx:-14,dy:4,a:"end"}];
+  for(var i=0;i<n;i++){var lx=cx+maxR*1.22*Math.cos(angles[i])+(lo[i]?lo[i].dx:0),ly=cy+maxR*1.22*Math.sin(angles[i])+(lo[i]?lo[i].dy:0);svg+='<text x="'+lx+'" y="'+ly+'" text-anchor="'+(lo[i]?lo[i].a:"middle")+'" font-size="11" font-weight="600" fill="var(--wh4)">'+labels[i]+'</text>';}
+  return svg+'</svg>';
+}
+
+var dz=document.getElementById("dz"),fi=document.getElementById("fi");
+dz.addEventListener("click",function(){fi.click();});
+dz.addEventListener("dragover",function(e){e.preventDefault();dz.classList.add("ov");});
+dz.addEventListener("dragleave",function(){dz.classList.remove("ov");});
+dz.addEventListener("drop",function(e){e.preventDefault();dz.classList.remove("ov");var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(f)go(f);});
+fi.addEventListener("change",function(e){if(e.target.files&&e.target.files[0])go(e.target.files[0]);});
+function go(f){if(!f.name.toLowerCase().endsWith(".zip")){showErr("Please upload a .zip file.");return;}runAudit(f);}
+</script>
+</body>
+</html>
