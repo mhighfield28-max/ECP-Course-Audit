@@ -212,7 +212,7 @@ async function ask(prompt){
   try {
     resp = await fetch(PROXY_URL, {
       method: "POST",
-      headers: {"Content-Type": "application/json"},
+      headers: {"Content-Type": "text/plain"},
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: 1000,
